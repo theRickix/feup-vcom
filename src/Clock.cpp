@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 using namespace cv;
@@ -110,6 +111,11 @@ int main( int argc, char** argv ) {
 	line( cdst, Point(lines[hour][0],lines[hour][1]), Point(lines[hour][2],lines[hour][3]), Scalar(255,0,0), 3, CV_AA);
 	line( cdst, Point(lines[minutes][0],lines[minutes][1]), Point(lines[minutes][2],lines[minutes][3]), Scalar(0,255,0), 3, CV_AA);
 	line( cdst, Point(lines[seconds][0],lines[seconds][1]), Point(lines[seconds][2],lines[seconds][3]), Scalar(0,0,255), 3, CV_AA);
+
+	//Calculate time
+	//Hour
+	float angle = (atan2(lines[minutes][1] - lines[minutes][3], lines[minutes][0] - lines[minutes][2]))*180/CV_PI;
+	cout << "Hour angle: " << angle << "\n";
 	imshow("source", src);
 	imshow("detected lines", cdst);
 	waitKey();
