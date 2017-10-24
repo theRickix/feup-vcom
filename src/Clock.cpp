@@ -19,6 +19,25 @@ int main( int argc, char** argv ) {
 	Canny(src, dst, 50, 200, 3);
 	cvtColor(dst, cdst, CV_GRAY2BGR);
 
+	//detect circle
+	std::vector<Vec3f> circles;
+	HoughCircles(dst,circles,CV_HOUGH_GRADIENT,2,50,200,100,100,300);
+
+	int pos=0;
+	int max=-1;
+	for(size_t i = 0; i < circles.size(); i++ )
+	{
+		Vec3f f=circles[i];
+		if(f[2]>max && f[0]+f[2]<dst.rows && f[0]-f[2]>=0 && f[1]+f[2]<dst.cols && f[1]-f[2]>0)
+		{
+			max=f[2];
+			pos=i;
+		}
+	}
+	Point center(circles[pos][0],circles[pos][1]);
+	int   radius= circles[pos][2];
+	circle(cdst,center,radius,Scalar(255),2);
+
 	vector<Vec4i> lines;
 	// detect the lines
 	HoughLinesP(dst, lines, 1, CV_PI/180, 50, 50, 10 );
