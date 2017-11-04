@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <algorithm>
 #include <math.h>
 
 using namespace std;
@@ -88,88 +89,81 @@ int main( int argc, char** argv ) {
 	circle( cdst, center, radius, Scalar(0,0,255), 3, 8, 0 );
 
 	vector<Vec4i> lines;
+	vector<Point> potentialLines,finalLines;
 	int hour=-1,seconds=-1,minutes=-1;
 	double max=-1, middle=-1, min=-1;
 	// detect the lines
 	HoughLinesP(dst, lines, 1, CV_PI/180, 50, 50, 10 );
-	for( size_t i = 0; i < lines.size(); i++ )
-	{
+	for( size_t i = 0; i < lines.size(); i++ )	{
 		Vec4i l = lines[i];
 		Point begin(l[0],l[1]), end(l[2],l[3]);
+		//check if is potential line by checking if it is near the center
 		if(abs(distanceToPoint(center,begin,end))<3) {
-			double distance = distanceBetweenPoints(begin,end);
-			if(distance > max) {
-				double tempd = max;
-				max = distance;
-				min = middle;
-				middle = tempd;
-
-				int tempi = seconds;
-				seconds = i;
-				hour = minutes;
-				minutes = tempi;
-
-			}
-			else if (distance > middle) {
-				double tempd = middle;
-				middle = distance;
-				min = tempd;
-
-				int tempi = minutes;
-				minutes = i;
-				hour = tempi;
-			}
-			else if (distance > min) {
-				min = distance;
-				hour = i;
-			}
-
-			//line( cdst, begin, end, Scalar(0,0,255), 3, CV_AA);
-			//cout << distanceBetweenPoints(begin,end) << "\n";
+			//guess which "final" point of the line is (not the center)
+			if(distanceBetweenPoints(center,begin) > distanceBetweenPoints(center,end))
+				potentialLines.push_back(begin);
+			else
+				potentialLines.push_back(end);
 		}
-
 	}
 
-	//get only the "final" point of each pointer
-	//hour
-	Point hourPoint;
-	if(distanceBetweenPoints(center,Point(lines[hour][0],lines[hour][1])) > distanceBetweenPoints(center,Point(lines[hour][2],lines[hour][3])))
-		hourPoint = Point(lines[hour][0],lines[hour][1]);
-	else
-		hourPoint = Point(lines[hour][2],lines[hour][3]);
+	//cout << potentialLines.size() << "\n";
 
-	//minutes
-	Point minutesPoint;
-	if(distanceBetweenPoints(center,Point(lines[minutes][0],lines[minutes][1])) > distanceBetweenPoints(center,Point(lines[minutes][2],lines[minutes][3])))
-		minutesPoint = Point(lines[minutes][0],lines[minutes][1]);
-	else
-		minutesPoint = Point(lines[minutes][2],lines[minutes][3]);
+	/*for( size_t i = 0; i < potentialLines.size(); i++ )
+			line( cdst, center, potentialLines[4], Scalar(0,0,255), 3, CV_AA);*/
 
-	//seconds
-	Point secondsPoint;
-	if(distanceBetweenPoints(center,Point(lines[seconds][0],lines[seconds][1])) > distanceBetweenPoints(center,Point(lines[seconds][2],lines[seconds][3])))
-		secondsPoint = Point(lines[seconds][0],lines[seconds][1]);
-	else
-		secondsPoint = Point(lines[seconds][2],lines[seconds][3]);
+	//check for "duplicate" lines
+	while(!potentialLines.empty() && finalLines.size()<3){
+		Point p1 = potentialLines.back();
+		potentialLines.pop_back();
+		Point p2 = potentialLines.back();
+		potentialLines.pop_back();
+		double gradient1 = (p1.y-center.y)/(p1.x-center.x);
+		double gradient2 = (p2.y-center.y)/(p2.x-center.x);
+		if(gradient1 == gradient2 && distanceBetweenPoints(p1,p2)<=30) {
+			finalLines.push_back(Point((p1.x+p2.x)/2,(p1.y+p2.y)/2));
+		}
+		else {
+			potentialLines.push_back(p2);
+			finalLines.push_back(p1);
+		}
+	}
 
+	//cout << finalLines.size() << "\n";
+
+	//sort
+	Point swap;
+	for (int c = 0 ; c < ( finalLines.size() - 1 ); c++) {
+		for (int d = 0 ; d < finalLines.size() - c - 1; d++) {
+			if (distanceBetweenPoints(center,finalLines[d]) > distanceBetweenPoints(center,finalLines[d+1])) { /* For decreasing order use < */
+
+				swap       = finalLines[d];
+				finalLines[d]   = finalLines[d+1];
+				finalLines[d+1] = swap;
+			}
+		}
+	}
+
+
+	//line( cdst, center, finalLines[i], Scalar(0,0,255), 3, CV_AA);
 
 	//Draw each pointer
-	line( cdst, center, hourPoint, Scalar(255,0,0), 3, CV_AA);
-	line( cdst, center, minutesPoint, Scalar(0,255,0), 3, CV_AA);
-	line( cdst, center, secondsPoint, Scalar(0,0,255), 3, CV_AA);
-
-	//debug
-	circle( cdst, minutesPoint, 1, Scalar(0,255,0), -1, 8, 0 );
+	line( cdst, center, finalLines[0], Scalar(255,0,0), 3, CV_AA);
+	line( cdst, center, finalLines[1], Scalar(0,255,0), 3, CV_AA);
+	if(finalLines.size()==3) line( cdst, center, finalLines[2], Scalar(0,0,255), 3, CV_AA);
 
 	//calculate angles
-	int hourAngle = getAngle(hourPoint,center);
+	int hourAngle = getAngle(finalLines[0],center);
 	cout << "Hour: " << (hourAngle)%360/30 << "\n";
 
-	int minutesAngle = getAngle(minutesPoint,center);
+	int minutesAngle = getAngle(finalLines[1],center);
 	cout << "Minutes: " << (minutesAngle)%360/6 << "\n";
 
-	int secondsAngle = getAngle(secondsPoint,center);
-	cout << "Seconds: " << (secondsAngle)%360/6 << "\n";
+	if(finalLines.size() == 3) {
+		int secondsAngle = getAngle(finalLines[2],center);
+		cout << "Seconds: " << (secondsAngle)%360/6 << "\n";
+	}
+
 
 
 	imshow("source", src);
