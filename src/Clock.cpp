@@ -46,6 +46,23 @@ double distanceToPoint(Point center, Point begin, Point end) {
 	return area / norm(end);
 }
 
+class Line {
+public:
+	Point begin;
+	Point end;
+	Point final;
+public:
+	Line() {}
+	Line(Point begin1,Point end1, Point center) {
+		begin=begin1;
+		end=end1;
+		if(distanceBetweenPoints(center,begin) > distanceBetweenPoints(center,end))
+			final=begin1;
+		else
+			final=end1;
+	}
+};
+
 int main( int argc, char** argv ) {
 	Mat src;
 	src = imread( argv[1], 1 ); //Read image file from arg
@@ -89,9 +106,7 @@ int main( int argc, char** argv ) {
 	circle( cdst, center, radius, Scalar(0,0,255), 3, 8, 0 );
 
 	vector<Vec4i> lines;
-	vector<Point> potentialLines,finalLines;
-	int hour=-1,seconds=-1,minutes=-1;
-	double max=-1, middle=-1, min=-1;
+	vector<Line> potentialLines,finalLines;
 	// detect the lines
 	HoughLinesP(dst, lines, 1, CV_PI/180, 50, 50, 10 );
 	for( size_t i = 0; i < lines.size(); i++ )	{
@@ -100,10 +115,7 @@ int main( int argc, char** argv ) {
 		//check if is potential line by checking if it is near the center
 		if(abs(distanceToPoint(center,begin,end))<3) {
 			//guess which "final" point of the line is (not the center)
-			if(distanceBetweenPoints(center,begin) > distanceBetweenPoints(center,end))
-				potentialLines.push_back(begin);
-			else
-				potentialLines.push_back(end);
+			potentialLines.push_back(Line(begin,end,center));
 		}
 	}
 
@@ -113,59 +125,42 @@ int main( int argc, char** argv ) {
 			line( cdst, center, potentialLines[4], Scalar(0,0,255), 3, CV_AA);*/
 
 	while(!potentialLines.empty() && finalLines.size()<3){
-		Point p1 = potentialLines.back();
+		Line p1 = potentialLines.back();
 		potentialLines.pop_back();
 
-		vector<Point> similar;
+		vector<Line> similar;
 
 		for(size_t i=0; i<potentialLines.size(); i++) {
-			Point p2 = potentialLines[i];
-			double gradient1 = (p1.y-center.y)/(p1.x-center.x);
-			double gradient2 = (p2.y-center.y)/(p2.x-center.x);
-			if(gradient1 == gradient2 && distanceBetweenPoints(p1,p2)<=30) {
+			Line p2 = potentialLines[i];
+			double gradient1 = (p1.final.y-center.y)/(p1.final.x-center.x);
+			double gradient2 = (p2.final.y-center.y)/(p2.final.x-center.x);
+			if(gradient1 == gradient2 && distanceBetweenPoints(p1.final,p2.final)<=30) {
 				similar.push_back(p2);
 				potentialLines.erase(potentialLines.begin()+i);
 			}
 		}
 
 		if(similar.size() > 0) {
-			int biggestX=0, biggestY=0,size=0;
+			int sumX1=0,sumX2=0,sumY1=0,sumY2=0;
 			for(size_t i=0; i<similar.size(); i++) {
-				if(distanceBetweenPoints(center,similar[i])>size) {
-					biggestX = similar[i].x;
-					biggestY = similar[i].y;
-				}
+
+				sumX1+=similar[i].begin.x;
+				sumX2+=similar[i].end.x;
+				sumY1+=similar[i].begin.y;
+				sumY2+=similar[i].end.y;
 			}
-			finalLines.push_back(Point(biggestX,biggestY));
+			finalLines.push_back(Line(Point(sumX1,sumY1),Point(sumX2,sumY2),center));
 		}
 		else
 			finalLines.push_back(p1);
 	}
-
-	//check for "duplicate" lines
-	while(!potentialLines.empty() && finalLines.size()<3){
-		Point p1 = potentialLines.back();
-		potentialLines.pop_back();
-		Point p2 = potentialLines.back();
-		potentialLines.pop_back();
-		double gradient1 = (p1.y-center.y)/(p1.x-center.x);
-		double gradient2 = (p2.y-center.y)/(p2.x-center.x);
-		if(gradient1 == gradient2 && distanceBetweenPoints(p1,p2)<=30) {
-			finalLines.push_back(Point((p1.x+p2.x)/2,(p1.y+p2.y)/2));
-		}
-		else {
-			potentialLines.push_back(p2);
-			finalLines.push_back(p1);
-		}
-	}
-
 	cout << finalLines.size() << "\n";
 
 	//sort
-	Point swap;
-	for (int c = 0 ; c < ( finalLines.size() - 1 ); c++) {
-		for (int d = 0 ; d < finalLines.size() - c - 1; d++) {
-			if (distanceBetweenPoints(center,finalLines[d]) > distanceBetweenPoints(center,finalLines[d+1])) { /* For decreasing order use < */
+	Line swap;
+	for (size_t c = 0 ; c < ( finalLines.size() - 1 ); c++) {
+		for (size_t d = 0 ; d < finalLines.size() - c - 1; d++) {
+			if (distanceBetweenPoints(finalLines[d].begin,finalLines[d].end) > distanceBetweenPoints(finalLines[d+1].begin,finalLines[d+1].end)) { /* For decreasing order use < */
 
 				swap       = finalLines[d];
 				finalLines[d]   = finalLines[d+1];
@@ -178,19 +173,19 @@ int main( int argc, char** argv ) {
 	//line( cdst, center, finalLines[i], Scalar(0,0,255), 3, CV_AA);
 
 	//Draw each pointer
-	line( cdst, center, finalLines[0], Scalar(255,0,0), 3, CV_AA);
-	line( cdst, center, finalLines[1], Scalar(0,255,0), 3, CV_AA);
-	if(finalLines.size()==3) line( cdst, center, finalLines[2], Scalar(0,0,255), 3, CV_AA);
+	line( cdst, center, finalLines[0].final, Scalar(255,0,0), 3, CV_AA);
+	line( cdst, center, finalLines[1].final, Scalar(0,255,0), 3, CV_AA);
+	if(finalLines.size()==3) line( cdst, center, finalLines[2].final, Scalar(0,0,255), 3, CV_AA);
 
 	//calculate angles
-	int hourAngle = getAngle(finalLines[0],center);
+	int hourAngle = getAngle(finalLines[0].final,center);
 	cout << "Hour: " << (hourAngle)%360/30 << "\n";
 
-	int minutesAngle = getAngle(finalLines[1],center);
+	int minutesAngle = getAngle(finalLines[1].final,center);
 	cout << "Minutes: " << (minutesAngle)%360/6 << "\n";
 
 	if(finalLines.size() == 3) {
-		int secondsAngle = getAngle(finalLines[2],center);
+		int secondsAngle = getAngle(finalLines[2].final,center);
 		cout << "Seconds: " << (secondsAngle)%360/6 << "\n";
 	}
 
