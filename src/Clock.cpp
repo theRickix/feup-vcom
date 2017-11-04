@@ -107,10 +107,40 @@ int main( int argc, char** argv ) {
 		}
 	}
 
-	//cout << potentialLines.size() << "\n";
+	cout << potentialLines.size() << "\n";
 
 	/*for( size_t i = 0; i < potentialLines.size(); i++ )
 			line( cdst, center, potentialLines[4], Scalar(0,0,255), 3, CV_AA);*/
+
+	while(!potentialLines.empty() && finalLines.size()<3){
+		Point p1 = potentialLines.back();
+		potentialLines.pop_back();
+
+		vector<Point> similar;
+
+		for(size_t i=0; i<potentialLines.size(); i++) {
+			Point p2 = potentialLines[i];
+			double gradient1 = (p1.y-center.y)/(p1.x-center.x);
+			double gradient2 = (p2.y-center.y)/(p2.x-center.x);
+			if(gradient1 == gradient2 && distanceBetweenPoints(p1,p2)<=30) {
+				similar.push_back(p2);
+				potentialLines.erase(potentialLines.begin()+i);
+			}
+		}
+
+		if(similar.size() > 0) {
+			int biggestX=0, biggestY=0,size=0;
+			for(size_t i=0; i<similar.size(); i++) {
+				if(distanceBetweenPoints(center,similar[i])>size) {
+					biggestX = similar[i].x;
+					biggestY = similar[i].y;
+				}
+			}
+			finalLines.push_back(Point(biggestX,biggestY));
+		}
+		else
+			finalLines.push_back(p1);
+	}
 
 	//check for "duplicate" lines
 	while(!potentialLines.empty() && finalLines.size()<3){
@@ -129,7 +159,7 @@ int main( int argc, char** argv ) {
 		}
 	}
 
-	//cout << finalLines.size() << "\n";
+	cout << finalLines.size() << "\n";
 
 	//sort
 	Point swap;
