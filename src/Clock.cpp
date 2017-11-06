@@ -141,6 +141,7 @@ int main( int argc, char** argv ) {
 		}
 
 		if(similar.size() > 0) {
+			similar.push_back(p1);
 			int sumX1=0,sumX2=0,sumY1=0,sumY2=0;
 			for(size_t i=0; i<similar.size(); i++) {
 
@@ -149,7 +150,7 @@ int main( int argc, char** argv ) {
 				sumY1+=similar[i].begin.y;
 				sumY2+=similar[i].end.y;
 			}
-			finalLines.push_back(Line(Point(sumX1,sumY1),Point(sumX2,sumY2),center));
+			finalLines.push_back(Line(Point(sumX1/similar.size(),sumY1/similar.size()),Point(sumX2/similar.size(),sumY2/similar.size()),center));
 		}
 		else
 			finalLines.push_back(p1);
