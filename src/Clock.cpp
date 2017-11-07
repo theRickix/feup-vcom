@@ -112,17 +112,19 @@ int main( int argc, char** argv ) {
 	for( size_t i = 0; i < lines.size(); i++ )	{
 		Vec4i l = lines[i];
 		Point begin(l[0],l[1]), end(l[2],l[3]);
+
+		//line( cdst, begin, end, Scalar((i+5)*(i+1),100,(i+1)*(i+1)), 3, CV_AA);
+
 		//check if is potential line by checking if it is near the center
 		if(abs(distanceToPoint(center,begin,end))<3) {
 			//guess which "final" point of the line is (not the center)
+			//line( cdst, begin, end, Scalar((i+5)*(i+1),100,(i+1)*(i+1)), 3, CV_AA);
+
 			potentialLines.push_back(Line(begin,end,center));
 		}
 	}
 
 	cout << potentialLines.size() << "\n";
-
-	/*for( size_t i = 0; i < potentialLines.size(); i++ )
-			line( cdst, center, potentialLines[4], Scalar(0,0,255), 3, CV_AA);*/
 
 	while(!potentialLines.empty() && finalLines.size()<3){
 		Line p1 = potentialLines.back();
@@ -161,7 +163,7 @@ int main( int argc, char** argv ) {
 	Line swap;
 	for (size_t c = 0 ; c < ( finalLines.size() - 1 ); c++) {
 		for (size_t d = 0 ; d < finalLines.size() - c - 1; d++) {
-			if (distanceBetweenPoints(finalLines[d].begin,finalLines[d].end) > distanceBetweenPoints(finalLines[d+1].begin,finalLines[d+1].end)) { /* For decreasing order use < */
+			if (distanceBetweenPoints(finalLines[d].begin,finalLines[d].end) > distanceBetweenPoints(finalLines[d+1].begin,finalLines[d+1].end)) {
 
 				swap       = finalLines[d];
 				finalLines[d]   = finalLines[d+1];
@@ -171,23 +173,21 @@ int main( int argc, char** argv ) {
 	}
 
 
-	//line( cdst, center, finalLines[i], Scalar(0,0,255), 3, CV_AA);
-
 	//Draw each pointer
-	line( cdst, center, finalLines[0].final, Scalar(255,0,0), 3, CV_AA);
+	/*line( cdst, center, finalLines[0].final, Scalar(255,0,0), 3, CV_AA);
 	line( cdst, center, finalLines[1].final, Scalar(0,255,0), 3, CV_AA);
 	if(finalLines.size()==3) line( cdst, center, finalLines[2].final, Scalar(0,0,255), 3, CV_AA);
-
+*/
 	//calculate angles
 	int hourAngle = getAngle(finalLines[0].final,center);
-	cout << "Hour: " << (hourAngle)%360/30 << "\n";
+	cout << "Hour: " << (hourAngle)/30 << "\n";
 
 	int minutesAngle = getAngle(finalLines[1].final,center);
-	cout << "Minutes: " << (minutesAngle)%360/6 << "\n";
+	cout << "Minutes: " << (minutesAngle)/6 << "\n";
 
 	if(finalLines.size() == 3) {
 		int secondsAngle = getAngle(finalLines[2].final,center);
-		cout << "Seconds: " << (secondsAngle)%360/6 << "\n";
+		cout << "Seconds: " << (secondsAngle)/6 << "\n";
 	}
 
 
