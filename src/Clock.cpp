@@ -174,10 +174,10 @@ int main( int argc, char** argv ) {
 
 
 	//Draw each pointer
-	/*line( cdst, center, finalLines[0].final, Scalar(255,0,0), 3, CV_AA);
+	line( cdst, center, finalLines[0].final, Scalar(255,0,0), 3, CV_AA);
 	line( cdst, center, finalLines[1].final, Scalar(0,255,0), 3, CV_AA);
 	if(finalLines.size()==3) line( cdst, center, finalLines[2].final, Scalar(0,0,255), 3, CV_AA);
-*/
+
 	//calculate angles
 	int hourAngle = getAngle(finalLines[0].final,center);
 	cout << "Hour: " << (hourAngle)/30 << "\n";
