@@ -1,7 +1,7 @@
 # feup-vcom
 Repo for VCOM (Computer Vision) class in FEUP (MIEIC).
 
-#Steps for using conan
+# Steps for using conan
 
 1. Install Conan from https://www.conan.io/downloads
 
