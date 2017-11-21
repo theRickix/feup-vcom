@@ -13,12 +13,12 @@ conan install  --build missing
 
 3. Generate cmake files
 
-  For Eclipse
+  3.1. For Eclipse
 ```
 cmake  -G "Eclipse CDT4 - Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
 ```
 
-  For Visual Studio
+  3.2. For Visual Studio
 ```
 cmake -G "Visual Studio 14 Win64" --build . --config Release
 ```
