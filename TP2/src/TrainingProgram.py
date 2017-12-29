@@ -80,24 +80,19 @@ print('[INFO] Output Model Data Folder: ' + str(modelWriteFolder))
 with tf.device(device_name):
     data = []
     labels = []
-    imagePaths = sorted(list(paths.list_images(os.path.join(rootDir))))
     imagePathsToUse = []
 
-    i = nImages = 150
-    currentImgLabel = imagePaths[0].split(os.path.sep)[-2]
+    subdirs = sorted(os.listdir(rootDir))
 
-    print('[INFO] Getting the first ' + str(nImages) + ' images from each folder.')
-    for imagePath in imagePaths:
-        if i > 0 and currentImgLabel == imagePath.split(os.path.sep)[-2]:
-            currentImgLabel = imagePath.split(os.path.sep)[-2]
-            i -= 1
-            imagePathsToUse.append(imagePath)
-        elif not currentImgLabel == imagePath.split(os.path.sep)[-2]:
-            i = nImages - 1
-            imagePathsToUse.append(imagePath)
-            currentImgLabel = imagePath.split(os.path.sep)[-2]
-        else:
-            continue
+    # Load 95% of images in each folder to training set
+    if subdirs:
+        for directory in subdirs:
+            imagePaths = os.listdir(os.path.join(rootDir, directory))
+            for (i, imagePath) in enumerate(imagePaths):
+                if (i / len(imagePaths)) > 0.95:
+                    print("[INFO] Directory '", directory, "' with " + str(i) + "images to train.")
+                    break
+                imagePathsToUse.append(os.path.join(rootDir, directory,imagePath))
 
     randomSeed = 58
     random.seed(randomSeed)
