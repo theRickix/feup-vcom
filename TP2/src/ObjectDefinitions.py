@@ -1,7 +1,18 @@
-from enum import Enum
-class RealWorldObjectType(Enum):
+# Enums
+from enum import IntEnum
+
+# Keras imports
+from keras import Sequential
+from keras.layers.convolutional import Conv2D
+from keras.layers.convolutional import MaxPooling2D
+from keras.layers.core import Activation
+from keras.layers.core import Flatten
+from keras.layers.core import Dense
+from keras import backend as K
+
+class RealWorldObjectType(IntEnum):
     AIRPORT = 0,
-    BARELAND = 1,
+    BARE_LAND = 1,
     BASEBALL_FIELD = 2,
     BEACH = 3,
     BRIDGE = 4,
@@ -18,22 +29,46 @@ class RealWorldObjectType(Enum):
     MOUNTAIN = 15,
     PARK = 16,
     PARKING = 17,
-    PLAYGROUND = 18
-    PORT = 19,
-    RAILWAY_STATION = 20,
-    RESORT = 21,
-    RIVER = 22,
-    SCHOOL = 23,
-    SPARSE_RESIDENTIAL = 24,
-    SQUARE = 25,
-    STADIUM = 26,
-    STORAGE_TANKS = 27,
-    VIADUCT = 28
+    PLAYGROUND = 18,
+    POND = 19,
+    PORT = 20,
+    RAILWAY_STATION = 21,
+    RESORT = 22,
+    RIVER = 23,
+    SCHOOL = 24,
+    SPARSE_RESIDENTIAL = 25,
+    SQUARE = 26,
+    STADIUM = 27,
+    STORAGE_TANKS = 28,
+    VIADUCT = 29
 
-class RealObject:
-    def __init__(self, real_obj_type):
-        if not isinstance(real_obj_type, RealWorldObjectType):
-            print("Object type is not of RealWorldObjectType")
-            del self
-        else:
-            self.real_object_type = real_obj_type
+EPOCHS = 25
+INIT_LEARN_RATE = 1e-3
+BATCH_SIZE = 32
+
+class LeNetModelBuilder:
+    @staticmethod
+    def buildModel(width, height, depth, classes):
+        # Create keras model
+        model = Sequential()
+        inputShape = (width, height, depth)
+        if K.image_data_format() == 'channels_first':
+            inputShape = (depth, width, height)
+
+        # Add first set of layers
+        model.add(Conv2D(20, (5, 5), padding = 'same', input_shape = inputShape))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+        # Add second set of layers
+        model.add(Conv2D(50, (5, 5), padding = 'same'))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+        model.add(Flatten())
+        model.add(Dense(500))
+        model.add(Activation('relu'))
+
+        model.add(Dense(classes))
+        model.add(Activation('softmax'))
+        return model

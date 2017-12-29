@@ -1,63 +1,163 @@
-import cv2
-import ObjectDefinitions
-import os
-from tkinter import filedialog
-from tkinter import *
-from imutils import paths
-from os import listdir
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.cross_validation import train_test_split
-
-
-def image_to_feature_vector(image, size=(32, 32)):
-    return cv2.resize(image, size).flatten()
-
-
-def extract_color_histogram(image, bins=(8, 8, 8)):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hist = cv2.calcHist([hsv], [0, 1, 2], None, bins,
-                        [0, 180, 0, 256, 0, 256])
-
-    cv2.normalize(hist, hist)
-
-    return hist.flatten()
-
 # Training program to recognize various object from the AID (Aerial Image Database)
+# Local imports
+from ObjectDefinitions import *
+
+# OpenCV imports
+import cv2
+
+# OS imports
+import os
+
+# Random import
+import random
+
+# Regex import
+import re
+
+# TKInter imports
+from tkinter import filedialog
+from tkinter import Tk
+Tk().withdraw()
+
+# Keras imports
+from keras.preprocessing.image import ImageDataGenerator
+from keras.preprocessing.image import img_to_array
+from keras.optimizers import Adam
+from keras.utils import to_categorical
+from sklearn.model_selection import train_test_split
+
+# Tensorflow imports
+import tensorflow as tf
+
+from imutils import paths
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot
+
+import numpy
+
+# Ask for which device to use to train the Keras Model
+device_name = input('Please choose your preferred device to train the model (cpu/gpu): ')
+while not device_name == 'gpu' and not device_name == 'cpu':
+    device_name = input('Invalid device, please choose from cpu or gpu: ')
+
+if device_name is 'gpu':
+    device_name = '/gpu:0'
+else:
+    device_name = '/cpu:0'
 
 # Create window to get the directory where the images for training are
-print('Waiting selection of AID...')
+print('[INFO] Waiting selection of AID root folder...')
 rootDir = filedialog.askdirectory(title = 'Navigate to the directory containing the AID')
+while isinstance(rootDir, tuple):
+    closeAnswer = input('No AID directory chosen. Do you wish to quit? (y/n) ')
+    if closeAnswer.lower() == 'n':
+        print('[INFO] Waiting selection of AID root folder...')
+        rootDir = filedialog.askdirectory(title = 'Navigate to the directory containing the AID')
+    elif closeAnswer.lower() == 'y':
+        print('[INFO] Exiting program.')
+        exit()
+    else:
+        print('[INFO] Invalid option. Retrying...')
 
-# used to obtain all files and directories in a given root directory
-# pathSelectionInfo = walk(directory)
+print('[INFO] Waiting selection of model output folder...')
+modelWriteFolder = filedialog.askdirectory(title = 'Choose the directory to save the trained model')
+while isinstance(modelWriteFolder, tuple):
+    closeAnswer = input('No AID directory chosen. Do you wish to quit? (y/n) ')
+    if closeAnswer.lower() == 'n':
+        print('[INFO] Waiting selection of model output folder...')
+        modelWriteFolder = filedialog.askdirectory(title = 'Choose the directory to save the trained model')
+    elif closeAnswer.lower() == 'y':
+        print('[INFO] Exiting program.')
+        exit()
+    else:
+        print('[INFO] Invalid option. Retrying...')
 
-# List all subdirectories and initialize vars
-rawImages = []
-features = []
-labels = []
+print('[INFO] Image database Folder: ' + str(rootDir))
+print('[INFO] Output Model Data Folder: ' + str(modelWriteFolder))
 
-subdirs = sorted(listdir(rootDir))
+with tf.device(device_name):
+    data = []
+    labels = []
+    imagePaths = sorted(list(paths.list_images(os.path.join(rootDir))))
+    imagePathsToUse = []
 
-if subdirs:
-    for directory in subdirs:
-        imagePaths = os.listdir(os.path.join(rootDir, directory))
-        for (i, imagePath) in enumerate(imagePaths):
-            image = cv2.imread(os.path.join(rootDir, directory, imagePath))
-            label = directory
-            pixels = image_to_feature_vector(image)
-            hist = extract_color_histogram(image)
+    i = nImages = 150
+    currentImgLabel = imagePaths[0].split(os.path.sep)[-2]
 
-            rawImages.append(pixels)
-            features.append(hist)
-            labels.append(label)
-        print("Directory '", directory, "' loaded.")
+    print('[INFO] Getting the first ' + str(nImages) + ' images from each folder.')
+    for imagePath in imagePaths:
+        if i > 0 and currentImgLabel == imagePath.split(os.path.sep)[-2]:
+            currentImgLabel = imagePath.split(os.path.sep)[-2]
+            i -= 1
+            imagePathsToUse.append(imagePath)
+        elif not currentImgLabel == imagePath.split(os.path.sep)[-2]:
+            i = nImages - 1
+            imagePathsToUse.append(imagePath)
+            currentImgLabel = imagePath.split(os.path.sep)[-2]
+        else:
+            continue
 
-(trainRI, testRI, trainRL, testRL) = train_test_split(
-    rawImages, labels, test_size=0.25, random_state=42)
-(trainFeat, testFeat, trainLabels, testLabels) = train_test_split(
-    features, labels, test_size=0.25, random_state=42)
+    randomSeed = 58
+    random.seed(randomSeed)
+    random.shuffle(imagePathsToUse)
 
-model = KNeighborsClassifier(2)
-model.fit(trainRI, trainRL)
-acc = model.score(testRI, testRL)
-print("[INFO] raw pixel accuracy: {:.2f}%".format(acc * 100))
+    print('[INFO] Adding all data for usage in training (' + str(len(imagePathsToUse)) + ' images used).')
+    for imagePath in imagePathsToUse:
+        image = cv2.imread(imagePath)
+        image = cv2.resize(image, (28, 28))
+        image = img_to_array(image)
+        data.append(image)
+
+        realObjTypeStr = imagePath.split(os.path.sep)[-2]
+        # Camel case spliting
+        realObjTypeStr = re.findall(r'[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))', realObjTypeStr)
+        realObjTypeStr = '_'.join(realObjTypeStr).upper()
+
+        label = RealWorldObjectType[realObjTypeStr].value
+        labels.append(label)
+
+    # Create numpy arrays for the data and labels, while scaling down the intensity 
+    # of each pixel data from [0, 255] to [0, 1]
+    data = numpy.array(data, dtype = 'float') / 255.0
+    labels = numpy.array(labels)
+
+    (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size = 0.25, random_state = randomSeed)
+
+    trainY = to_categorical(trainY, num_classes = len(RealWorldObjectType))
+    testY = to_categorical(testY, num_classes = len(RealWorldObjectType))
+
+    # construct the image generator for data augmentation
+    aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,
+        height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
+        horizontal_flip=True, fill_mode="nearest")
+
+    # Build and compile the model
+    print('[INFO] Model compiling in progress...')
+    model = LeNetModelBuilder.buildModel(width = 28, height = 28, depth = 3, classes = len(RealWorldObjectType))
+    opt = Adam(lr = INIT_LEARN_RATE, decay = INIT_LEARN_RATE / EPOCHS)
+    model.compile(loss = 'binary_crossentropy', optimizer = opt, metrics = ['accuracy'])
+
+    # Train the network
+    print('[INFO] Network started training... (Verbose enabled)')
+    H = model.fit_generator(aug.flow(trainX, trainY, batch_size = BATCH_SIZE), 
+    validation_data = (testX, testY), steps_per_epoch = len(trainX) // BATCH_SIZE, epochs = EPOCHS, verbose = 1)
+
+    # Save model to disk
+    print('[INFO] Serializing network')
+    model.save(os.path.join(modelWriteFolder, 'Model.kermod'))
+
+    # Plots data and save plot image
+    pyplot.style.use('ggplot')
+    pyplot.figure()
+    pyplot.plot(numpy.arange(0, EPOCHS), H.history['loss'], label = 'train_loss')
+    pyplot.plot(numpy.arange(0, EPOCHS), H.history['val_loss'], label = 'val_loss')
+    pyplot.plot(numpy.arange(0, EPOCHS), H.history['acc'], label = 'train_acc')
+    pyplot.plot(numpy.arange(0, EPOCHS), H.history['val_acc'], label = 'val_acc')
+    pyplot.title('Training data on AID (Loss and Accuracy)')
+    pyplot.xlabel('Epoch #')
+    pyplot.ylabel('Loss/Accuracy')
+    pyplot.legend(loc = 'lower left')
+    pyplot.savefig(os.path.join(modelWriteFolder, 'ModelTrain.jpg'))
+    
