@@ -71,15 +71,16 @@ for i in range(len(realWorldObjProbabilities)):
         max_prob = realWorldObjProbabilities[i]
         label = i
 
-# build the label
+# Build the label with the information
 label = RealWorldObjectType(label).name
 label = "{}: {:.2f}%".format(label, max_prob * 100)
  
-# draw the label on the image
+# Draw the label using the original image
 output = imutils.resize(imOrig, width=600)
-cv2.putText(output, label, (10, 25),  cv2.FONT_HERSHEY_SIMPLEX,
-	0.7, (0, 255, 0), 2)
+cv2.putText(output, label, (10, 25),  cv2.FONT_HERSHEY_DUPLEX,
+	0.7, (244, 134, 66), 2)
  
-# show the output image
+# Open a new window with the output image
 cv2.imshow("Output", output)
+cv2.imwrite("Prediction.jpg", output)
 cv2.waitKey(0)
