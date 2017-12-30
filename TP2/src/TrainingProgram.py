@@ -33,7 +33,7 @@ from imutils import paths
 
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot
+from matplotlib import pyplot
 
 import numpy
 

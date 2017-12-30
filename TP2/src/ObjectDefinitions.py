@@ -42,7 +42,7 @@ class RealWorldObjectType(IntEnum):
     STORAGE_TANKS = 28,
     VIADUCT = 29
 
-EPOCHS = 35
+EPOCHS = 50
 INIT_LEARN_RATE = 1e-3
 BATCH_SIZE = 32
 
