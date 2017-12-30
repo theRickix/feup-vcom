@@ -1,0 +1,53 @@
+This is BibTeX, Version 0.99d (TeX Live 2015/Debian)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: article.aux
+The style file: plainnat.bst
+Database file #1: egbib.bib
+Warning--entry type for "rosebrock" isn't style-file defined
+--line 1 of file egbib.bib
+Warning--empty publisher in paper
+Warning--empty year in paper
+Warning--empty year in paper
+Warning--empty year in rosebrock
+You've used 2 entries,
+            2773 wiz_defined-function locations,
+            598 strings with 5259 characters,
+and the built_in function-call counts, 1136 in all, are:
+= -- 76
+> -- 112
+< -- 1
++ -- 38
+- -- 36
+* -- 105
+:= -- 189
+add.period$ -- 5
+call.type$ -- 2
+change.case$ -- 17
+chr.to.int$ -- 2
+cite$ -- 8
+duplicate$ -- 36
+empty$ -- 66
+format.name$ -- 38
+if$ -- 216
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 2
+newline$ -- 17
+num.names$ -- 8
+pop$ -- 50
+preamble$ -- 1
+purify$ -- 16
+quote$ -- 0
+skip$ -- 33
+stack$ -- 0
+substring$ -- 4
+swap$ -- 2
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 17
+warning$ -- 4
+while$ -- 6
+width$ -- 0
+write$ -- 27
+(There were 5 warnings)
